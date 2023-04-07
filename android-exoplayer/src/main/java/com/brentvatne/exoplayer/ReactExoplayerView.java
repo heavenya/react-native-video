@@ -18,6 +18,8 @@ import android.widget.ImageButton;
 import com.brentvatne.react.R;
 import com.brentvatne.receiver.AudioBecomingNoisyReceiver;
 import com.brentvatne.receiver.BecomingNoisyListener;
+import com.daasuu.epf.EPlayerView;
+import com.daasuu.epf.PlayerScaleType;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Dynamic;
 import com.facebook.react.bridge.LifecycleEventListener;
@@ -30,7 +32,6 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
@@ -39,7 +40,6 @@ import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.DrmSessionEventListener;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
-import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
@@ -61,8 +61,8 @@ import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.ExoTrackSelection;
+import com.google.android.exoplayer2.trackselection.MappingTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.upstream.BandwidthMeter;
@@ -77,8 +77,8 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.Map;
+import java.util.UUID;
 
 @SuppressLint("ViewConstructor")
 class ReactExoplayerView extends FrameLayout implements
@@ -107,7 +107,7 @@ class ReactExoplayerView extends FrameLayout implements
     private View playPauseControlContainer;
     private Player.EventListener eventListener;
 
-    private ExoPlayerView exoPlayerView;
+    private EPlayerView exoPlayerView;
 
     private DataSource.Factory mediaDataSourceFactory;
     private SimpleExoPlayer player;
@@ -164,6 +164,7 @@ class ReactExoplayerView extends FrameLayout implements
     private final AudioManager audioManager;
     private final AudioBecomingNoisyReceiver audioBecomingNoisyReceiver;
 
+    @SuppressLint("HandlerLeak")
     private final Handler progressHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -223,7 +224,7 @@ class ReactExoplayerView extends FrameLayout implements
         LayoutParams layoutParams = new LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT);
-        exoPlayerView = new ExoPlayerView(getContext());
+        exoPlayerView = new EPlayerView(getContext());
         exoPlayerView.setLayoutParams(layoutParams);
 
         addView(exoPlayerView, 0, layoutParams);
@@ -417,7 +418,7 @@ class ReactExoplayerView extends FrameLayout implements
                                 .build();
                     player.addListener(self);
                     player.addMetadataOutput(self);
-                    exoPlayerView.setPlayer(player);
+                    exoPlayerView.setSimpleExoPlayer(player);
                     audioBecomingNoisyReceiver.setListener(self);
                     bandwidthMeter.addEventListener(new Handler(), self);
                     setPlayWhenReady(!isPaused);
@@ -427,7 +428,7 @@ class ReactExoplayerView extends FrameLayout implements
                     player.setPlaybackParameters(params);
                 }
                 if (playerNeedsSource && srcUri != null) {
-                    exoPlayerView.invalidateAspectRatio();
+                    exoPlayerView.setPlayerScaleType(PlayerScaleType.RESIZE_NONE);
 
                     // DRM
                     DrmSessionManager drmSessionManager = null;
@@ -1072,7 +1073,11 @@ class ReactExoplayerView extends FrameLayout implements
     }
 
     public void setResizeModeModifier(@ResizeMode.Mode int resizeMode) {
-        exoPlayerView.setResizeMode(resizeMode);
+        exoPlayerView.setPlayerScaleType(
+                resizeMode == ResizeMode.RESIZE_MODE_FIXED_WIDTH ? PlayerScaleType.RESIZE_FIT_WIDTH :
+                        resizeMode == ResizeMode.RESIZE_MODE_FIXED_HEIGHT ? PlayerScaleType.RESIZE_FIT_HEIGHT :
+                                PlayerScaleType.RESIZE_NONE
+                );
     }
 
     private void applyModifiers() {
@@ -1246,6 +1251,10 @@ class ReactExoplayerView extends FrameLayout implements
         }
     }
 
+    public void setGraphicFilter (String filter){
+        if(exoPlayerView != null && player != null && filter != null)
+            exoPlayerView.setGlFilter(FilterAccess.getFilter(filter));
+    }
 
     public void setVolumeModifier(float volume) {
         audioVolume = volume;
@@ -1327,11 +1336,11 @@ class ReactExoplayerView extends FrameLayout implements
 
     public void setUseTextureView(boolean useTextureView) {
         boolean finallyUseTextureView = useTextureView && this.drmUUID == null;
-        exoPlayerView.setUseTextureView(finallyUseTextureView);
+//        exoPlayerView.setUseTextureView(finallyUseTextureView);
     }
 
     public void setHideShutterView(boolean hideShutterView) {
-        exoPlayerView.setHideShutterView(hideShutterView);
+//        exoPlayerView.setHideShutterView(hideShutterView);
     }
 
     public void setBufferConfig(int newMinBufferMs, int newMaxBufferMs, int newBufferForPlaybackMs, int newBufferForPlaybackAfterRebufferMs) {
