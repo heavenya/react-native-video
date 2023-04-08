@@ -68,7 +68,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_SELECTED_VIDEO_TRACK_VALUE = "value";
     private static final String PROP_HIDE_SHUTTER_VIEW = "hideShutterView";
     private static final String PROP_CONTROLS = "controls";
-    private static final String PROP_GRAPHIC_FILTER = "glFilter";
+    private static final String PROP_GRAPHIC_FILTER = "filter";
 
     private ReactExoplayerConfig config;
 
