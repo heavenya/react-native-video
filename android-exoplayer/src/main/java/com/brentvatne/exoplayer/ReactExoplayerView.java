@@ -800,6 +800,9 @@ class ReactExoplayerView extends FrameLayout implements
             int width = videoFormat != null ? videoFormat.width : 0;
             int height = videoFormat != null ? videoFormat.height : 0;
             String trackId = videoFormat != null ? videoFormat.id : "-1";
+
+            Log.d("ademolaGlReact", " width =" + width + " height =" + height);
+
             eventEmitter.load(player.getDuration(), player.getCurrentPosition(), width, height,
                     getAudioTrackInfo(), getTextTrackInfo(), getVideoTrackInfo(), trackId);
         }
@@ -1073,6 +1076,7 @@ class ReactExoplayerView extends FrameLayout implements
     }
 
     public void setResizeModeModifier(@ResizeMode.Mode int resizeMode) {
+        Log.d("ademolaGlResize", " resizeMode"+resizeMode);
         exoPlayerView.setPlayerScaleType(
                 resizeMode == ResizeMode.RESIZE_MODE_FIXED_WIDTH ? PlayerScaleType.RESIZE_FIT_WIDTH :
                         resizeMode == ResizeMode.RESIZE_MODE_FIXED_HEIGHT ? PlayerScaleType.RESIZE_FIT_HEIGHT :
